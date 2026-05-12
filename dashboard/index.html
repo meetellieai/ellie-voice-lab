@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ellie Demo — Appointment Intake Assistant</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f8f9fa;
+      color: #1a1a1a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 32px;
+    }
+
+    .header-title {
+      font-size: 32px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      color: #1a1a1a;
+    }
+
+    .header-subtitle {
+      font-size: 16px;
+      color: #666;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Status Cards Grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .status-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e5e7eb;
+    }
+
+    .status-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    .status-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-green {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #d1fae5;
+    }
+
+    .badge-blue {
+      background: #eff6ff;
+      color: #0c4a6e;
+      border: 1px solid #bfdbfe;
+    }
+
+    .badge-yellow {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fef3c7;
+    }
+
+    .badge-gray {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+    }
+
+    /* Control Bar */
+    .control-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      align-items: center;
+    }
+
+    .refresh-btn {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background: #0052a3;
+    }
+
+    .last-refresh {
+      font-size: 13px;
+      color: #999;
+    }
+
+    /* Main Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e5e7eb;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 16px;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Lead Details */
+    .lead-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .lead-field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .field-value {
+      font-size: 16px;
+      font-weight: 500;
+      color: #1a1a1a;
+      word-break: break-word;
+    }
+
+    .field-value.empty {
+      color: #ccc;
+      font-style: italic;
+    }
+
+    /* Summary */
+    .summary-text {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #0066cc;
+    }
+
+    /* Repeat Caller Card */
+    .repeat-caller-badge {
+      display: inline-block;
+      background: #065f46;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .memory-detail {
+      background: #f0fdf4;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border-left: 3px solid #16a34a;
+      font-size: 14px;
+    }
+
+    /* Transcript */
+    .transcript-box {
+      background: #f5f5f5;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #333;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* Recent Calls */
+    .recent-calls-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .call-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .call-item-index {
+      font-size: 12px;
+      font-weight: 600;
+      color: #999;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .call-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .call-item-name {
+      font-weight: 600;
+      color: #1a1a1a;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .call-item-detail {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .call-item-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .call-item-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state-text {
+      font-size: 16px;
+      margin: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: 16px;
+      }
+
+      .header-title {
+        font-size: 24px;
+      }
+
+      .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .lead-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .control-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .refresh-btn {
+        width: 100%;
+      }
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1 class="header-title">Ellie Demo</h1>
+      <p class="header-subtitle">
+        Ellie captures appointment requests, remembers repeat callers, and creates CRM-ready summaries.
+      </p>
+    </div>
+
+    <!-- Control Bar -->
+    <div class="control-bar">
+      <button class="refresh-btn" onclick="loadResults()">Refresh Now</button>
+      <span class="last-refresh" id="lastRefresh"></span>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="status-grid" id="statusCards">
+      <div class="status-card">
+        <div class="status-label">Call Status</div>
+        <div class="status-value" id="callStatus">—</div>
+        <div id="callStatusBadge"></div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-label">Caller Type</div>
+        <div class="status-value" id="callerType">—</div>
+        <div id="callerBadge"></div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-label">Appointment Readiness</div>
+        <div class="status-value" id="appointmentReadiness">—</div>
+        <div id="readinessBadge"></div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-label">Lead Quality</div>
+        <div class="status-value" id="leadQuality">—</div>
+        <div id="qualityBadge"></div>
+      </div>
+    </div>
+
+    <!-- Lead Details Card -->
+    <div class="card" id="leadCard">
+      <h2 class="card-title">📋 Appointment Details</h2>
+      <div class="lead-grid" id="leadDetails">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Repeat Caller Card -->
+    <div class="card" id="repeatCallerCard">
+      <h2 class="card-title">👤 Caller Context</h2>
+      <div id="repeatCallerContent">
+        <p class="field-value empty">No calls yet</p>
+      </div>
+    </div>
+
+    <!-- CRM Summary Card -->
+    <div class="card" id="summaryCard">
+      <h2 class="card-title">✨ CRM-Ready Summary</h2>
+      <div id="summaryContent">
+        <p class="field-value empty">Waiting for call data...</p>
+      </div>
+    </div>
+
+    <!-- Transcript Card -->
+    <div class="card" id="transcriptCard">
+      <h2 class="card-title">📞 Call Transcript</h2>
+      <div id="transcriptContent">
+        <p class="field-value empty">Waiting for call...</p>
+      </div>
+    </div>
+
+    <!-- Recent Calls Card -->
+    <div class="card" id="recentCallsCard">
+      <h2 class="card-title">📚 Recent Calls (Last 5)</h2>
+      <div class="recent-calls-list" id="recentCalls">
+        <p class="field-value empty">No calls yet</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let refreshInterval = null;
+
+    function formatDate(isoString) {
+      if (!isoString) return "—";
+      const date = new Date(isoString);
+      return date.toLocaleString();
+    }
+
+    function generateCRMSummary(lead, isRepeat, memory) {
+      const callerName = lead.caller_name || (memory && memory.caller_name) || "Caller";
+
+      // Normalize service names
+      function normalizeService(service) {
+        const map = {
+          "pest": "pest control",
+          "floor": "flooring",
+          "hvac": "HVAC",
+          "ac": "air conditioning"
+        };
+        return map[service?.toLowerCase()] || service || "service";
+      }
+
+      // For repeat callers, use memory as primary source
+      if (isRepeat && memory) {
+        const service = normalizeService(memory.last_service_needed);
+        const issue = memory.last_issue_description || memory.last_service_needed;
+        const location = memory.location ? ` in ${memory.location}` : "";
+
+        // Capitalize date only, not time window
+        const date = memory.last_appointment_date ? memory.last_appointment_date.charAt(0).toUpperCase() + memory.last_appointment_date.slice(1) : "";
+        const timeWindow = memory.last_appointment_time_window || "";
+        const timeStr = (date && timeWindow) ? `${date} ${timeWindow}` : timeWindow;
+
+        let summary = `${callerName} is checking on a previous ${service} estimate request for ${issue}${location}.`;
+        if (timeStr) {
+          summary += ` Preferred appointment time: ${timeStr}.`;
+        }
+        return summary;
+      }
+
+      // First call (new caller)
+      const service = normalizeService(lead.service_needed);
+      const issue = lead.issue_description || lead.service_needed;
+      const location = lead.location ? ` in ${lead.location}` : "";
+
+      const date = lead.appointment_date ? lead.appointment_date.charAt(0).toUpperCase() + lead.appointment_date.slice(1) : "";
+      const timeWindow = lead.appointment_time_window || "";
+      const timeStr = (date && timeWindow) ? `${date} ${timeWindow}` : timeWindow;
+
+      let summary = `${callerName} is looking to schedule a ${service} estimate for ${issue}${location}.`;
+      if (timeWindow) {
+        summary += ` Preferred time: ${timeStr}.`;
+      }
+      return summary;
+    }
+
+    function getBadgeClass(value) {
+      if (value === "Ready" || value === "High") return "badge-green";
+      if (value === "Needs Follow-up" || value === "Medium") return "badge-blue";
+      if (value === "Incomplete") return "badge-yellow";
+      return "badge-gray";
+    }
+
+    function getBadgeLabel(value) {
+      return value || "Unknown";
+    }
+
+    async function loadResults() {
+      try {
+        const res = await fetch("/api/results");
+        const data = await res.json();
+
+        updateTimestamp();
+
+        if (!data || data.length === 0) {
+          showEmptyState();
+          return;
+        }
+
+        const latest = data[0];
+        const lead = latest.lead || {};
+
+        // Update status cards
+        const callerName = lead.caller_name || "Unknown";
+        document.getElementById("callStatus").textContent = callerName;
+        document.getElementById("callStatusBadge").innerHTML = `<span class="badge badge-blue">${latest.provider || "test"}</span>`;
+
+        const isRepeat = latest.is_repeat_caller ? "Repeat Caller" : "New Caller";
+        const repeatBadgeClass = latest.is_repeat_caller ? "badge-green" : "badge-blue";
+        document.getElementById("callerType").textContent = isRepeat;
+        document.getElementById("callerBadge").innerHTML = `<span class="badge ${repeatBadgeClass}">${isRepeat}</span>`;
+
+        const readiness = lead.appointment_readiness || "Incomplete";
+        document.getElementById("appointmentReadiness").textContent = readiness;
+        document.getElementById("readinessBadge").innerHTML = `<span class="badge ${getBadgeClass(readiness)}">${readiness}</span>`;
+
+        const quality = lead.lead_quality || "Unknown";
+        document.getElementById("leadQuality").textContent = quality;
+        document.getElementById("qualityBadge").innerHTML = `<span class="badge ${getBadgeClass(quality)}">${quality}</span>`;
+
+        // Update lead details
+        const leadDetailsHtml = `
+          <div class="lead-field">
+            <div class="field-label">Caller Name</div>
+            <div class="field-value ${!lead.caller_name ? "empty" : ""}">${lead.caller_name || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Phone</div>
+            <div class="field-value ${!lead.phone ? "empty" : ""}">${lead.phone || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Location</div>
+            <div class="field-value ${!lead.location ? "empty" : ""}">${lead.location || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Service Needed</div>
+            <div class="field-value ${!lead.service_needed ? "empty" : ""}">${lead.service_needed || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Issue Description</div>
+            <div class="field-value ${!lead.issue_description ? "empty" : ""}">${lead.issue_description || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Appointment Type</div>
+            <div class="field-value ${!lead.appointment_type ? "empty" : ""}">${lead.appointment_type || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Preferred Date</div>
+            <div class="field-value ${!lead.appointment_date ? "empty" : ""}">${lead.appointment_date || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Preferred Time</div>
+            <div class="field-value ${!lead.appointment_time_window ? "empty" : ""}">${lead.appointment_time_window || "Not captured"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Contact Method</div>
+            <div class="field-value ${!lead.preferred_contact_method ? "empty" : ""}">${lead.preferred_contact_method || "Not specified"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Special Requests</div>
+            <div class="field-value ${!lead.special_requests ? "empty" : ""}">${lead.special_requests || "None"}</div>
+          </div>
+          <div class="lead-field">
+            <div class="field-label">Urgency</div>
+            <div class="field-value ${!lead.urgency ? "empty" : ""}">${lead.urgency || "Not specified"}</div>
+          </div>
+        `;
+        document.getElementById("leadDetails").innerHTML = leadDetailsHtml;
+
+        // Update repeat caller card
+        if (latest.is_repeat_caller && latest.caller_memory) {
+          const memory = latest.caller_memory;
+          const summaryText = latest.memory_summary || "Repeat caller information available";
+          const repeatHtml = `
+            <div class="repeat-caller-badge">✓ Repeat Caller Detected</div>
+            <div class="memory-detail">
+              <strong>Previous Request:</strong><br/>
+              ${summaryText}
+            </div>
+            ${memory.call_count ? `<div class="memory-detail"><strong>Call Count:</strong> ${memory.call_count}</div>` : ""}
+            ${memory.last_call_at ? `<div class="memory-detail"><strong>Last Call:</strong> ${formatDate(memory.last_call_at)}</div>` : ""}
+          `;
+          document.getElementById("repeatCallerContent").innerHTML = repeatHtml;
+        } else {
+          document.getElementById("repeatCallerContent").innerHTML = `<span class="badge badge-blue">New Caller</span><p style="margin-top: 8px; color: #666;">This is their first call.</p>`;
+        }
+
+        // Update CRM summary (pass repeat caller flag and memory for context)
+        const summary = generateCRMSummary(lead, latest.is_repeat_caller, latest.caller_memory);
+        document.getElementById("summaryContent").innerHTML = `<div class="summary-text">${summary}</div>`;
+
+        // Update transcript
+        const transcript = latest.transcript || latest.raw_payload?.transcript || "No transcript available";
+        document.getElementById("transcriptContent").innerHTML = `<div class="transcript-box">${transcript}</div>`;
+
+        // Update recent calls
+        const recentHtml = data.slice(0, 5).map((call, idx) => {
+          const callLead = call.lead || {};
+          const callName = callLead.caller_name || "Unknown";
+          const callService = callLead.service_needed ? `${callLead.service_needed}${callLead.issue_description ? ` (${callLead.issue_description})` : ""}` : "Unknown request";
+          const isRepeatCall = call.is_repeat_caller ? "Repeat" : "New";
+          const readinessVal = callLead.appointment_readiness || "Incomplete";
+
+          return `
+            <div class="call-item">
+              <div class="call-item-index">#${idx + 1}</div>
+              <div class="call-item-info">
+                <div class="call-item-name">${callName}</div>
+                <div class="call-item-detail">${callService}</div>
+                <div class="call-item-detail" style="font-size: 12px; color: #999;">${formatDate(call.created_at)}</div>
+                <div class="call-item-badges">
+                  <span class="call-item-badge badge ${isRepeatCall === "Repeat" ? "badge-green" : "badge-blue"}">${isRepeatCall}</span>
+                  <span class="call-item-badge badge ${getBadgeClass(readinessVal)}">${readinessVal}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        document.getElementById("recentCalls").innerHTML = recentHtml;
+      } catch (error) {
+        console.error("Error loading results:", error);
+        showEmptyState();
+      }
+    }
+
+    function showEmptyState() {
+      document.getElementById("callStatus").textContent = "—";
+      document.getElementById("callStatusBadge").innerHTML = "";
+      document.getElementById("callerType").textContent = "—";
+      document.getElementById("callerBadge").innerHTML = "";
+      document.getElementById("appointmentReadiness").textContent = "—";
+      document.getElementById("readinessBadge").innerHTML = "";
+      document.getElementById("leadQuality").textContent = "—";
+      document.getElementById("qualityBadge").innerHTML = "";
+
+      const emptyHtml = `
+        <div class="empty-state">
+          <div class="empty-state-icon">☎️</div>
+          <p class="empty-state-text">Waiting for an Ellie demo call...</p>
+        </div>
+      `;
+
+      document.getElementById("leadDetails").innerHTML = emptyHtml;
+      document.getElementById("repeatCallerContent").innerHTML = `<p class="field-value empty">No calls yet</p>`;
+      document.getElementById("summaryContent").innerHTML = `<p class="field-value empty">Waiting for call data...</p>`;
+      document.getElementById("transcriptContent").innerHTML = `<p class="field-value empty">Waiting for call...</p>`;
+      document.getElementById("recentCalls").innerHTML = `<p class="field-value empty">No calls yet</p>`;
+    }
+
+    function updateTimestamp() {
+      const now = new Date();
+      const time = now.toLocaleTimeString();
+      document.getElementById("lastRefresh").textContent = `Last refresh: ${time}`;
+    }
+
+    // Initial load
+    loadResults();
+
+    // Auto-refresh every 4 seconds
+    refreshInterval = setInterval(loadResults, 4000);
+  </script>
+</body>
+</html>
