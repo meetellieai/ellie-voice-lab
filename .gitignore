@@ -18,3 +18,6 @@ jarvis_job_manager/outputs/
 
 # Logs
 *.log
+
+# Claude local workspace
+.claude/
