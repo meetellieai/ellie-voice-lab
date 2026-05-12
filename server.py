@@ -12,14 +12,34 @@ from n8n_client import send_lead_to_n8n
 
 BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "config.json"
-RESULTS_PATH = BASE_DIR / "results" / "test_calls.json"
-CALLER_MEMORY_PATH = BASE_DIR / "results" / "caller_memory.json"
+CONFIG_EXAMPLE_PATH = BASE_DIR / "config.example.json"
+RESULTS_DIR = BASE_DIR / "results"
+RESULTS_PATH = RESULTS_DIR / "test_calls.json"
+CALLER_MEMORY_PATH = RESULTS_DIR / "caller_memory.json"
 
 app = FastAPI(title="Ellie Voice Lab")
 
 
+@app.on_event("startup")
+async def startup_event():
+    RESULTS_DIR.mkdir(exist_ok=True)
+
+
 def load_config() -> dict:
-    with open(CONFIG_PATH, "r") as f:
+    if CONFIG_PATH.exists():
+        path = CONFIG_PATH
+    elif CONFIG_EXAMPLE_PATH.exists():
+        path = CONFIG_EXAMPLE_PATH
+    else:
+        return {
+            "active_provider": "vogent",
+            "demo_niche": "pest_control",
+            "twilio_phone_number": "",
+            "n8n_webhook_url": "",
+            "providers": {}
+        }
+
+    with open(path, "r") as f:
         return json.load(f)
 
 
