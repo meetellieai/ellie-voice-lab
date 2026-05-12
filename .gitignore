@@ -21,3 +21,6 @@ jarvis_job_manager/outputs/
 
 # Claude local workspace
 .claude/
+
+# Local config with API keys
+config.json

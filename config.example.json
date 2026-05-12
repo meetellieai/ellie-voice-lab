@@ -1,0 +1,21 @@
+{
+  "active_provider": "vogent",
+  "demo_niche": "pest_control",
+  "twilio_phone_number": "",
+  "n8n_webhook_url": "",
+  "providers": {
+    "vogent": {
+      "api_key": "",
+      "agent_id": "",
+      "webhook_secret": ""
+    },
+    "openai_realtime": {
+      "api_key": "",
+      "model": "gpt-realtime"
+    },
+    "ultravox": {
+      "api_key": "",
+      "agent_id": ""
+    }
+  }
+}
