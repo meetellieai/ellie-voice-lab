@@ -1,9 +1,13 @@
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from fastapi import FastAPI, Request
+from google import genai
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -12,6 +16,7 @@ from n8n_client import send_lead_to_n8n
 
 
 BASE_DIR = Path(__file__).parent
+load_dotenv(BASE_DIR / ".env")
 CONFIG_PATH = BASE_DIR / "config.json"
 CONFIG_EXAMPLE_PATH = BASE_DIR / "config.example.json"
 RESULTS_DIR = BASE_DIR / "results"
@@ -243,6 +248,38 @@ def update_caller_memory(lead: dict):
 async def home():
     index_path = BASE_DIR / "dashboard" / "index.html"
     return HTMLResponse(index_path.read_text())
+
+
+
+@app.get("/api/gemini/health")
+async def gemini_health():
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        return JSONResponse(
+            {"ok": False, "error": "Missing GEMINI_API_KEY"},
+            status_code=500,
+        )
+
+    try:
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents="Say exactly: Ellie backend Gemini connection is working.",
+        )
+
+        return {
+            "ok": True,
+            "model": "gemini-2.5-flash",
+            "message": response.text,
+        }
+
+    except Exception as error:
+        return JSONResponse(
+            {"ok": False, "error": str(error)},
+            status_code=500,
+        )
 
 
 @app.get("/api/config")
