@@ -327,12 +327,12 @@ def clean_ellie_reply(reply: str, conversation_text: str = "") -> str:
     if "pest" in lower or "ants" in lower or "roaches" in lower or "termites" in lower or "bugs" in lower:
         if "started showing up" in lower or "baseboards" in lower or "inspection" in lower or "treatment" in lower:
             return "Got it. I have the ant issue around the sink, bathroom, and baseboards noted, along with the inspection and treatment request. I’ll make sure this gets sent over for follow-up."
-        return "Thanks, Sarah. I have Sarasota and Friday morning noted. Where are you seeing the ants, and how long has this been going on?"
+        return "Thanks. I have the pest issue and preferred time noted. Where are you seeing the ants, and how long has this been going on?"
 
     if "flooring" in lower or "floor" in lower:
         if "water damage" in lower or "boards" in lower or "lifting" in lower:
             return "Got it. I have the flooring issue noted, including the lifting boards near the kitchen and possible water damage. I’ll make sure this gets sent over for follow-up."
-        return "Thanks, Mike. I have Bradenton and tomorrow afternoon noted. What exactly seems to be going on with the flooring?"
+        return "Thanks. I have the flooring request and preferred time noted. What exactly seems to be going on with the flooring?"
 
     if "roof" in lower or "roofing" in lower or "shingle" in lower:
         return "Thanks, I have that noted. Are you dealing with a leak, visible damage, or are you looking for a general roof inspection?"

@@ -146,7 +146,19 @@ def extract_service_needed(text: str) -> str:
         ],
     }
 
+    # Priority checks matter. "baseboards" contains "boards", so pest-control
+    # conversations about ants around baseboards should not be misclassified as flooring.
+    pest_keywords = service_map.get("pest control", [])
+    if any(keyword in lower for keyword in pest_keywords):
+        return "pest control"
+
+    flooring_keywords = service_map.get("flooring", [])
+    if any(keyword in lower for keyword in flooring_keywords):
+        return "flooring"
+
     for service, keywords in service_map.items():
+        if service in ["pest control", "flooring"]:
+            continue
         if any(keyword in lower for keyword in keywords):
             return service
 
@@ -263,6 +275,36 @@ def extract_issue_description(text: str) -> str:
     Looks for the caller's own problem statement.
     """
     cleaned = strip_speaker_labels(text)
+    lower = cleaned.lower()
+
+    # Pest-control priority: prefer the concrete pest details over the generic
+    # "come out and look at a pest problem" sentence.
+    if any(word in lower for word in ["ants", "roaches", "termites", "bugs", "pest"]):
+        details = []
+
+        if "ants" in lower:
+            details.append("ants")
+
+        pest_locations = []
+        for location_word in ["kitchen", "bathroom", "sink", "baseboards"]:
+            if location_word in lower:
+                pest_locations.append(location_word)
+
+        if pest_locations:
+            details.append("around " + ", ".join(dict.fromkeys(pest_locations)))
+
+        if "few days" in lower or "a few days" in lower:
+            details.append("started a few days ago")
+
+        if "inspection" in lower and "treatment" in lower:
+            details.append("inspection and treatment requested")
+        elif "inspection" in lower:
+            details.append("inspection requested")
+        elif "treatment" in lower:
+            details.append("treatment requested")
+
+        if details:
+            return "; ".join(details)
 
     patterns = [
         r"\bI need someone to\s+([^.!?]+)",
