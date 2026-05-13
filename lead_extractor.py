@@ -12,7 +12,15 @@ def strip_speaker_labels(text: str) -> str:
 
 
 def extract_caller_name(text: str) -> str:
-    """Extract caller name from transcript using common caller patterns."""
+    """Extract caller name from Caller lines only, so Ellie is never mistaken as the caller."""
+    caller_lines = []
+
+    for line in (text or "").splitlines():
+        if line.strip().lower().startswith("caller:"):
+            caller_lines.append(re.sub(r"^caller\s*:\s*", "", line.strip(), flags=re.IGNORECASE))
+
+    search_text = " ".join(caller_lines) if caller_lines else text
+
     patterns = [
         r"\bmy name is\s+([a-zA-Z][a-zA-Z'-]+)",
         r"\bthis is\s+([a-zA-Z][a-zA-Z'-]+)(?:\s|,|\.)",
@@ -22,10 +30,10 @@ def extract_caller_name(text: str) -> str:
         r"\b(?:it's|it is)\s+([a-zA-Z][a-zA-Z'-]+)\b",
     ]
 
-    bad_names = {"just", "the", "a", "an", "ok", "yeah", "yes", "no", "calling", "looking"}
+    bad_names = {"ellie", "just", "the", "a", "an", "ok", "yeah", "yes", "no", "calling", "looking"}
 
     for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
+        match = re.search(pattern, search_text, re.IGNORECASE)
         if match:
             name = match.group(1).strip()
             if name.lower() not in bad_names:
