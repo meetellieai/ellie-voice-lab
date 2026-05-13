@@ -436,50 +436,56 @@
     }
 
     function generateCRMSummary(lead, isRepeat, memory) {
+      // Prefer backend-generated current-call summary if available.
+      if (window.latestResult && window.latestResult.crm_summary) {
+        return window.latestResult.crm_summary;
+      }
+
       const callerName = lead.caller_name || (memory && memory.caller_name) || "Caller";
 
-      // Normalize service names
       function normalizeService(service) {
         const map = {
           "pest": "pest control",
+          "pest control": "pest control",
           "floor": "flooring",
+          "flooring": "flooring",
           "hvac": "HVAC",
-          "ac": "air conditioning"
+          "ac": "air conditioning",
+          "air conditioning": "air conditioning"
         };
         return map[service?.toLowerCase()] || service || "service";
       }
 
-      // For repeat callers, use memory as primary source
-      if (isRepeat && memory) {
-        const service = normalizeService(memory.last_service_needed);
-        const issue = memory.last_issue_description || memory.last_service_needed;
-        const location = memory.location ? ` in ${memory.location}` : "";
+      function normalizeAppointmentType(type, service) {
+        const cleanType = (type || "").toLowerCase();
+        const cleanService = (service || "").toLowerCase();
 
-        // Capitalize date only, not time window
-        const date = memory.last_appointment_date ? memory.last_appointment_date.charAt(0).toUpperCase() + memory.last_appointment_date.slice(1) : "";
-        const timeWindow = memory.last_appointment_time_window || "";
-        const timeStr = (date && timeWindow) ? `${date} ${timeWindow}` : timeWindow;
+        if (cleanType.includes("inspection")) return "inspection";
+        if (cleanType.includes("treatment")) return "treatment";
+        if (cleanType.includes("quote")) return "quote";
+        if (cleanType.includes("estimate")) return "estimate";
 
-        let summary = `${callerName} is checking on a previous ${service} estimate request for ${issue}${location}.`;
-        if (timeStr) {
-          summary += ` Preferred appointment time: ${timeStr}.`;
-        }
-        return summary;
+        if (cleanService.includes("pest")) return "inspection/treatment";
+        if (cleanService.includes("floor")) return "quote";
+        return "service appointment";
       }
 
-      // First call (new caller)
-      const service = normalizeService(lead.service_needed);
-      const issue = lead.issue_description || lead.service_needed;
-      const location = lead.location ? ` in ${lead.location}` : "";
+      const service = normalizeService(lead.service_needed || memory?.last_service_needed);
+      const appointmentType = normalizeAppointmentType(lead.appointment_type, service);
+      const issue = lead.issue_description || lead.service_needed || "the request";
+      const location = lead.location ? ` Location: ${lead.location}.` : "";
 
       const date = lead.appointment_date ? lead.appointment_date.charAt(0).toUpperCase() + lead.appointment_date.slice(1) : "";
-      const timeWindow = lead.appointment_time_window || "";
-      const timeStr = (date && timeWindow) ? `${date} ${timeWindow}` : timeWindow;
+      const timeWindow = lead.appointment_time_window || lead.preferred_callback_time || "";
+      const timeStr = (date && timeWindow) ? `${date} ${timeWindow}` : (date || timeWindow);
 
-      let summary = `${callerName} is looking to schedule a ${service} estimate for ${issue}${location}.`;
-      if (timeWindow) {
+      const opener = isRepeat ? `${callerName} called again` : `${callerName} is looking to schedule`;
+
+      let summary = `${opener} a ${service} ${appointmentType}. Issue: ${issue}.${location}`;
+      if (timeStr) {
         summary += ` Preferred time: ${timeStr}.`;
       }
+
       return summary;
     }
 
