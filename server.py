@@ -112,6 +112,42 @@ def get_caller_by_phone(phone: str) -> dict:
     return memory.get(normalized, None)
 
 
+def build_current_call_summary(lead: dict, is_repeat: bool = False, memory_summary: str = "") -> str:
+    """Build a CRM summary focused on the current call, with repeat-caller context second."""
+    name = lead.get("caller_name") or "Caller"
+    service = lead.get("service_needed") or "service request"
+    issue = lead.get("issue_description") or ""
+    location = lead.get("location") or ""
+    appointment_date = lead.get("appointment_date") or ""
+    appointment_time = lead.get("appointment_time_window") or lead.get("preferred_callback_time") or ""
+    phone = lead.get("phone") or ""
+    follow_up = lead.get("recommended_follow_up") or ""
+
+    opener = f"{name} called again" if is_repeat else f"{name} called"
+    parts = [f"{opener} about {service}."]
+
+    if issue:
+        parts.append(f"Current issue: {issue}.")
+
+    if location:
+        parts.append(f"Location: {location}.")
+
+    preferred = " ".join(part for part in [appointment_date, appointment_time] if part)
+    if preferred:
+        parts.append(f"Preferred time: {preferred}.")
+
+    if phone:
+        parts.append(f"Phone: {phone}.")
+
+    if follow_up:
+        parts.append(f"Recommended follow-up: {follow_up}.")
+
+    if is_repeat and memory_summary:
+        parts.append(f"Repeat caller context: {memory_summary}")
+
+    return " ".join(parts)
+
+
 def update_caller_memory(lead: dict):
     """Update or create caller record in memory."""
     phone = lead.get("phone")
@@ -244,6 +280,8 @@ async def vogent_webhook(request: Request):
     is_repeat = bool(caller_memory)
     memory_summary = caller_memory.get("last_summary", "") if caller_memory else ""
 
+    crm_summary = build_current_call_summary(lead, is_repeat, memory_summary)
+
     result = {
         "provider": "vogent",
         "created_at": datetime.utcnow().isoformat() + "Z",
@@ -253,6 +291,7 @@ async def vogent_webhook(request: Request):
         "is_repeat_caller": is_repeat,
         "caller_memory": caller_memory,
         "memory_summary": memory_summary,
+        "crm_summary": crm_summary,
     }
 
     save_result(result)
@@ -262,7 +301,7 @@ async def vogent_webhook(request: Request):
 
     await send_lead_to_n8n(config.get("n8n_webhook_url", ""), result)
 
-    return {"ok": True, "lead": lead, "is_repeat_caller": is_repeat, "memory_summary": memory_summary}
+    return {"ok": True, "lead": lead, "is_repeat_caller": is_repeat, "memory_summary": memory_summary, "crm_summary": crm_summary}
 
 
 @app.post("/webhooks/test")
@@ -277,6 +316,8 @@ async def test_webhook(request: Request):
     is_repeat = bool(caller_memory)
     memory_summary = caller_memory.get("last_summary", "") if caller_memory else ""
 
+    crm_summary = build_current_call_summary(lead, is_repeat, memory_summary)
+
     result = {
         "provider": "test",
         "created_at": datetime.utcnow().isoformat() + "Z",
@@ -286,6 +327,7 @@ async def test_webhook(request: Request):
         "is_repeat_caller": is_repeat,
         "caller_memory": caller_memory,
         "memory_summary": memory_summary,
+        "crm_summary": crm_summary,
     }
 
     save_result(result)
@@ -293,4 +335,4 @@ async def test_webhook(request: Request):
     # Update caller memory
     update_caller_memory(lead)
 
-    return {"ok": True, "lead": lead, "is_repeat_caller": is_repeat, "memory_summary": memory_summary}
+    return {"ok": True, "lead": lead, "is_repeat_caller": is_repeat, "memory_summary": memory_summary, "crm_summary": crm_summary}
