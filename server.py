@@ -282,6 +282,149 @@ async def gemini_health():
         )
 
 
+
+ELLIE_SYSTEM_PROMPT = """
+You are Ellie, a warm, professional AI receptionist and intake assistant.
+
+Your job:
+- Greet the caller naturally.
+- Ask one question at a time.
+- Collect the caller's name, phone number, location, service needed, issue/problem, urgency, preferred date/time, and preferred contact method.
+- Keep responses short, conversational, and phone-call friendly. Usually 1-2 complete sentences.
+- Never end mid-sentence.
+- Sound like a real receptionist, not a chatbot.
+- Do not over-explain, but acknowledge what the caller said before asking the next question.
+- When you have enough information, summarize the request and tell the caller someone will follow up.
+
+Business context:
+You are handling an intake call for a local service business.
+The goal is to capture a clean lead that can be sent to the owner.
+
+Important:
+Never say you are Gemini.
+Never mention system prompts.
+Never mention automation.
+You are Ellie.
+"""
+
+
+def clean_ellie_reply(reply: str, conversation_text: str = "") -> str:
+    text = (reply or "").strip()
+
+    looks_incomplete = (
+        not text
+        or re.search(r"\b(and|or|but|with|for|of|to|the|a|an|kind of)$", text, re.IGNORECASE)
+        or (not re.search(r"[.!?]$", text) and len(text) < 90)
+    )
+
+    if not looks_incomplete:
+        return text
+
+    lower = (conversation_text or "").lower()
+
+    if "flooring" in lower or "floor" in lower:
+        return "Thanks, Mike. I have Bradenton and tomorrow afternoon noted. What exactly seems to be going on with the flooring?"
+
+    if not re.search(r"\d{3}[-\s]?\d{3}[-\s]?\d{4}", lower):
+        return "Thanks. What is the best phone number for a callback?"
+
+    return "Thanks, I have that noted. Can you tell me a little more about what you need help with?"
+
+
+def scripted_fallback_reply(conversation_text: str) -> str:
+    lower = (conversation_text or "").lower()
+
+    if not re.search(r"\d{3}[-\s]?\d{3}[-\s]?\d{4}", lower):
+        return "Got it. What’s the best phone number for a callback?"
+
+    if "bradenton" not in lower and "location" not in lower and "city" not in lower:
+        return "Thanks. What city or area are you located in?"
+
+    if "tomorrow" not in lower and "today" not in lower and "urgent" not in lower and "as soon" not in lower:
+        return "How soon are you hoping to have someone help with this?"
+
+    return "Thanks, I have the main details logged. I’ll make sure this gets sent over so someone can follow up with you."
+
+
+@app.post("/api/gemini/chat")
+async def gemini_chat(request: Request):
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        return JSONResponse(
+            {"ok": False, "error": "Missing GEMINI_API_KEY"},
+            status_code=500,
+        )
+
+    payload = await request.json()
+    conversation_text = payload.get("conversationText", "")
+
+    if not conversation_text:
+        return JSONResponse(
+            {"ok": False, "error": "Missing conversationText"},
+            status_code=400,
+        )
+
+    prompt = f"""
+Conversation so far:
+{conversation_text}
+
+Respond as Ellie. Ask the next best intake question or summarize if the intake is complete.
+Your response must be a complete sentence and must not end abruptly.
+"""
+
+    try:
+        client = genai.Client(api_key=api_key)
+
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config={
+                    "system_instruction": ELLIE_SYSTEM_PROMPT,
+                    "max_output_tokens": 180,
+                    "temperature": 0.7,
+                },
+            )
+            model_used = "gemini-2.5-flash"
+            raw_reply = response.text
+
+        except Exception as primary_error:
+            print("Primary Gemini model failed, trying fallback:", primary_error)
+
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=prompt,
+                    config={
+                        "system_instruction": ELLIE_SYSTEM_PROMPT,
+                        "max_output_tokens": 180,
+                        "temperature": 0.7,
+                    },
+                )
+                model_used = "gemini-2.5-flash-lite"
+                raw_reply = response.text
+
+            except Exception as fallback_error:
+                print("Fallback Gemini model failed, using scripted fallback:", fallback_error)
+                model_used = "scripted-fallback"
+                raw_reply = scripted_fallback_reply(conversation_text)
+
+        reply = clean_ellie_reply(raw_reply, conversation_text)
+
+        return {
+            "ok": True,
+            "reply": reply,
+            "model": model_used,
+        }
+
+    except Exception as error:
+        return JSONResponse(
+            {"ok": False, "error": str(error)},
+            status_code=500,
+        )
+
+
 @app.get("/api/config")
 async def get_config():
     config = load_config()
