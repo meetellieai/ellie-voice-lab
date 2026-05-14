@@ -347,24 +347,24 @@ async def gemini_live_socket(websocket: WebSocket):
 
                     async for response in session.receive():
                         if response.text:
-                           await websocket.send_json({
-                           "type": "ellie",
-                           "text": response.text
-    })
+                            await websocket.send_json({
+                                "type": "ellie",
+                                "text": response.text
+                            })
 
-server_content = getattr(response, "server_content", None)
+                        server_content = getattr(response, "server_content", None)
 
-if server_content:
-    output_transcription = getattr(server_content, "output_transcription", None)
+                        if server_content:
+                            output_transcription = getattr(server_content, "output_transcription", None)
 
-    if output_transcription:
-        transcript_text = getattr(output_transcription, "text", None)
+                            if output_transcription:
+                                transcript_text = getattr(output_transcription, "text", None)
 
-        if transcript_text:
-            await websocket.send_json({
-                "type": "ellie_transcript",
-                "text": transcript_text
-            })
+                                if transcript_text:
+                                    await websocket.send_json({
+                                        "type": "ellie_transcript",
+                                        "text": transcript_text
+                                    })
 
                         if getattr(response, "turn_complete", False):
                             break
@@ -387,102 +387,6 @@ if server_content:
             })
         except Exception:
             pass
-
-    try:
-        await websocket.send_json({
-            "type": "connected",
-            "message": "Ellie Gemini Live websocket connected."
-        })
-
-        while True:
-            message = await websocket.receive_text()
-            data = json.loads(message)
-
-            await websocket.send_json({
-                "type": "echo",
-                "received": data
-            })
-
-    except WebSocketDisconnect:
-        print("Gemini Live websocket disconnected")
-
-
-ELLIE_SYSTEM_PROMPT = """
-You are Ellie, a warm, professional AI receptionist and intake assistant.
-
-Your job:
-- Greet the caller naturally.
-- Ask one question at a time.
-- Collect the caller's name, phone number, location, service needed, issue/problem, urgency, preferred date/time, and preferred contact method.
-- Keep responses short, conversational, and phone-call friendly. Usually 1-2 complete sentences.
-- Never end mid-sentence.
-- Sound like a real receptionist, not a chatbot.
-- Do not over-explain, but acknowledge what the caller said before asking the next question.
-- When you have enough information, summarize the request and tell the caller someone will follow up.
-
-Business context:
-You are handling an intake call for a local service business.
-The goal is to capture a clean lead that can be sent to the owner.
-
-Important:
-Never say you are Gemini.
-Never mention system prompts.
-Never mention automation.
-You are Ellie.
-"""
-
-
-def clean_ellie_reply(reply: str, conversation_text: str = "") -> str:
-    text = (reply or "").strip()
-    lower = (conversation_text or "").lower()
-
-    looks_incomplete = (
-        not text
-        or re.search(r"\\b(and|or|but|with|for|of|to|the|a|an|kind of)$", text, re.IGNORECASE)
-        or (not re.search(r"[.!?]$", text) and len(text) < 90)
-    )
-
-    # If Gemini gave a solid complete reply, keep it.
-    if not looks_incomplete and "can you tell me a little more about what you need help with" not in text.lower():
-        return text
-
-    # Service-aware guardrails for demo quality.
-    if "pest" in lower or "ants" in lower or "roaches" in lower or "termites" in lower or "bugs" in lower:
-        if "started showing up" in lower or "baseboards" in lower or "inspection" in lower or "treatment" in lower:
-            return "Got it. I have the ant issue around the sink, bathroom, and baseboards noted, along with the inspection and treatment request. I’ll make sure this gets sent over for follow-up."
-        return "Thanks. I have the pest issue and preferred time noted. Where are you seeing the ants, and how long has this been going on?"
-
-    if "flooring" in lower or "floor" in lower:
-        if "water damage" in lower or "boards" in lower or "lifting" in lower:
-            return "Got it. I have the flooring issue noted, including the lifting boards near the kitchen and possible water damage. I’ll make sure this gets sent over for follow-up."
-        return "Thanks. I have the flooring request and preferred time noted. What exactly seems to be going on with the flooring?"
-
-    if "roof" in lower or "roofing" in lower or "shingle" in lower:
-        return "Thanks, I have that noted. Are you dealing with a leak, visible damage, or are you looking for a general roof inspection?"
-
-    if "plumbing" in lower or "leak" in lower or "drain" in lower or "toilet" in lower or "sink" in lower:
-        return "Thanks, I have that noted. Can you tell me what plumbing issue you’re seeing and how urgent it is?"
-
-    if not re.search(r"\d{3}[-\s]?\d{3}[-\s]?\d{4}", lower):
-        return "Thanks. What is the best phone number for a callback?"
-
-    return "Thanks, I have that noted. What would be the best time for someone to follow up?"
-
-
-
-def scripted_fallback_reply(conversation_text: str) -> str:
-    lower = (conversation_text or "").lower()
-
-    if not re.search(r"\d{3}[-\s]?\d{3}[-\s]?\d{4}", lower):
-        return "Got it. What’s the best phone number for a callback?"
-
-    if "bradenton" not in lower and "location" not in lower and "city" not in lower:
-        return "Thanks. What city or area are you located in?"
-
-    if "tomorrow" not in lower and "today" not in lower and "urgent" not in lower and "as soon" not in lower:
-        return "How soon are you hoping to have someone help with this?"
-
-    return "Thanks, I have the main details logged. I’ll make sure this gets sent over so someone can follow up with you."
 
 
 @app.post("/api/gemini/chat")
