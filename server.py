@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 import re
@@ -345,13 +346,27 @@ async def gemini_live_socket(websocket: WebSocket):
                         turn_complete=True,
                     )
 
+                    full_transcript = ""
+
                     async for response in session.receive():
+
+                        # Audio bytes from Gemini Live
+                        if getattr(response, "data", None):
+                            audio_b64 = base64.b64encode(response.data).decode("utf-8")
+                            await websocket.send_json({
+                                "type": "audio",
+                                "audio": audio_b64,
+                                "mime_type": "audio/pcm;rate=24000"
+                            })
+
+                        # Plain text fallback, if Gemini sends any
                         if response.text:
                             await websocket.send_json({
                                 "type": "ellie",
                                 "text": response.text
                             })
 
+                        # Transcript of the audio response
                         server_content = getattr(response, "server_content", None)
 
                         if server_content:
@@ -361,12 +376,19 @@ async def gemini_live_socket(websocket: WebSocket):
                                 transcript_text = getattr(output_transcription, "text", None)
 
                                 if transcript_text:
+                                    full_transcript += transcript_text
+
                                     await websocket.send_json({
-                                        "type": "ellie_transcript",
+                                        "type": "ellie_transcript_chunk",
                                         "text": transcript_text
                                     })
 
                         if getattr(response, "turn_complete", False):
+                            if full_transcript:
+                                await websocket.send_json({
+                                    "type": "ellie_transcript_final",
+                                    "text": full_transcript
+                                })
                             break
 
                 elif data.get("type") == "end":
