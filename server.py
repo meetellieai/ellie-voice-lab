@@ -347,10 +347,24 @@ async def gemini_live_socket(websocket: WebSocket):
 
                     async for response in session.receive():
                         if response.text:
-                            await websocket.send_json({
-                                "type": "ellie",
-                                "text": response.text
-                            })
+                           await websocket.send_json({
+                           "type": "ellie",
+                           "text": response.text
+    })
+
+server_content = getattr(response, "server_content", None)
+
+if server_content:
+    output_transcription = getattr(server_content, "output_transcription", None)
+
+    if output_transcription:
+        transcript_text = getattr(output_transcription, "text", None)
+
+        if transcript_text:
+            await websocket.send_json({
+                "type": "ellie_transcript",
+                "text": transcript_text
+            })
 
                         if getattr(response, "turn_complete", False):
                             break
