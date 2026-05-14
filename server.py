@@ -318,7 +318,8 @@ async def gemini_live_socket(websocket: WebSocket):
         async with client.aio.live.connect(
             model="gemini-3.1-flash-live-preview",
             config={
-                "response_modalities": ["TEXT"],
+                "response_modalities": ["AUDIO"],
+                "output_audio_transcription": {},
                 "system_instruction": (
                     "You are Ellie, a friendly AI receptionist for a local service business. "
                     "Keep replies short, warm, and professional. "
