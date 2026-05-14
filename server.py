@@ -281,6 +281,16 @@ async def gemini_health():
             {"ok": False, "error": str(error)},
             status_code=500,
         )
+    
+
+@app.get("/api/gemini/live-health")
+async def gemini_live_health():
+    api_key = os.getenv("GEMINI_API_KEY")
+    return {
+        "ok": bool(api_key),
+        "service": "gemini-live",
+        "key_present": bool(api_key)
+    }
 
 
 
