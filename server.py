@@ -297,6 +297,82 @@ async def gemini_live_health():
 async def gemini_live_socket(websocket: WebSocket):
     await websocket.accept()
 
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        await websocket.send_json({
+            "type": "error",
+            "message": "Missing GEMINI_API_KEY"
+        })
+        await websocket.close()
+        return
+
+    try:
+        client = genai.Client(api_key=api_key)
+
+        await websocket.send_json({
+            "type": "connected",
+            "message": "Ellie Gemini Live websocket connected to backend."
+        })
+
+        async with client.aio.live.connect(
+            model="gemini-live-2.5-flash-preview",
+            config={
+                "response_modalities": ["TEXT"],
+                "system_instruction": (
+                    "You are Ellie, a friendly AI receptionist for a local service business. "
+                    "Keep replies short, warm, and professional. "
+                    "Ask one question at a time. "
+                    "Your job is to collect the caller's name, phone number, location, "
+                    "service needed, urgency, preferred appointment time, and notes."
+                ),
+            },
+        ) as session:
+
+            while True:
+                message = await websocket.receive_text()
+                data = json.loads(message)
+
+                if data.get("type") == "text":
+                    user_text = data.get("text", "")
+
+                    await session.send_client_content(
+                        turns={
+                            "role": "user",
+                            "parts": [{"text": user_text}]
+                        },
+                        turn_complete=True,
+                    )
+
+                    async for response in session.receive():
+                        if response.text:
+                            await websocket.send_json({
+                                "type": "ellie",
+                                "text": response.text
+                            })
+
+                        if getattr(response, "turn_complete", False):
+                            break
+
+                elif data.get("type") == "end":
+                    await websocket.send_json({
+                        "type": "ended",
+                        "message": "Gemini Live test session ended."
+                    })
+                    break
+
+    except WebSocketDisconnect:
+        print("Gemini Live websocket disconnected")
+
+    except Exception as error:
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "message": str(error)
+            })
+        except Exception:
+            pass
+
     try:
         await websocket.send_json({
             "type": "connected",
