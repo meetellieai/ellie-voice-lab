@@ -316,7 +316,7 @@ async def gemini_live_socket(websocket: WebSocket):
         })
 
         async with client.aio.live.connect(
-            model="gemini-2.5-flash-live-preview",
+            model="gemini-3.1-flash-live-preview",
             config={
                 "response_modalities": ["TEXT"],
                 "system_instruction": (
