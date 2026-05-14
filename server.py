@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -6,7 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from google import genai
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -292,6 +293,27 @@ async def gemini_live_health():
         "key_present": bool(api_key)
     }
 
+@app.websocket("/ws/gemini-live")
+async def gemini_live_socket(websocket: WebSocket):
+    await websocket.accept()
+
+    try:
+        await websocket.send_json({
+            "type": "connected",
+            "message": "Ellie Gemini Live websocket connected."
+        })
+
+        while True:
+            message = await websocket.receive_text()
+            data = json.loads(message)
+
+            await websocket.send_json({
+                "type": "echo",
+                "received": data
+            })
+
+    except WebSocketDisconnect:
+        print("Gemini Live websocket disconnected")
 
 
 ELLIE_SYSTEM_PROMPT = """
